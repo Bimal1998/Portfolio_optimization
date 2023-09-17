@@ -21,14 +21,17 @@ yf.pdr_override()
 
 # %matplotlib inline
 
+#Past data period selected
 start_date = datetime.datetime(2023,4,1)
 end_date = datetime.datetime(2023,8,30)
 
+#Taking data from Yahoo Finance
 def get_stock_price(ticker):
     prices = web.get_data_yahoo(ticker,start_date,end_date)
     prices = prices["Adj Close"].dropna(how="all")
     return prices
 
+#In here I considered stock prices of Indian Stock Market
 ticker_list = ['INFY.NS','RELIANCE.NS','TCS.NS','HDFCBANK.NS','HINDUNILVR.NS','LT.NS','HCLTECH.NS','BAJAJFINSV.NS','KOTAKBANK.NS','TITAN.NS']
 portfolio = get_stock_price(ticker_list)
 portfolio
@@ -42,22 +45,27 @@ import pypfopt
 from pypfopt import risk_models
 from pypfopt import plotting
 
+#Calculating sample covarianve
 sample_cov = risk_models.sample_cov(portfolio)
 sample_cov
 
+#Covariance matrix
 S = risk_models.CovarianceShrinkage(portfolio).ledoit_wolf()
 plotting.plot_covariance(S, plot_correlation=True);
 
+#This is optional
 correlation_matrix = risk_models.cov_to_corr(sample_cov)
 correlation_matrix
 
+#Calculating expected returns
 from pypfopt import expected_returns
-#mu = expected_returns.mean_historical_return(portfolio)
+#mu = expected_returns.mean_historical_return(portfolio) You are able to use mean hostorical return or CAPM to find expected returns.
 mu = expected_returns.capm_return(portfolio)
 mu
 
 mu.plot.barh(figsize=(5,5));
 
+#Fining best allocation
 from pypfopt.efficient_frontier import EfficientFrontier
 
 ef = EfficientFrontier(mu, S, weight_bounds=(0, 1))
@@ -78,6 +86,7 @@ cleaned_weights1 = ef1.clean_weights()
 numerical_weights1 = np.array([value for value in cleaned_weights1.values()])
 print(cleaned_weights1)
 
+#Finding the portfolio return and risk with traditional calculations
 risk_free_rate = 0.02
 # Calculate the portfolio return
 portfolio_return = np.dot(list(cleaned_weights.values()), mu)
@@ -93,8 +102,10 @@ print("Portfolio_Return:", portfolio_return*100,"%")
 print("Portfolio_Std:", portfolio_std_dev*100,"%")
 print("Sharpe Ratio:", sharpe_ratio)
 
+#Calculate the above 3 results using inbuilt functions
 ef.portfolio_performance(verbose=True)
 
+#Finding the allocation
 from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
 
 latest_prices = get_latest_prices(portfolio)
@@ -106,6 +117,7 @@ allocation, leftover = da.greedy_portfolio()
 print("Discrete allocation:", allocation)
 print("Funds remaining: ${:.2f}".format(leftover))
 
+#Plotting
 n_samples = 10000
 w = np.random.dirichlet(np.ones(len(mu)), n_samples)
 rets = w.dot(mu)
